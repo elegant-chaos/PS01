@@ -1,7 +1,7 @@
 ---
 title: "STAT/MATH 495: Problem Set 01"
-author: "WRITE YOUR NAME HERE"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+author: "Jenn Halbleib"
+date: "2017-09-07"
 output:
   html_document:
     toc: true
@@ -16,6 +16,36 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=8, fig.height=4.5)
 
 # Load packages
 library(tidyverse)
+library(randomForest)
 ```
 
+#Loading the data from Kaggle's Titanic challenge
+```{r}
+train <- read_csv("https://rudeboybert.github.io/STAT495/static/Titanic/train.csv")
+test <- read_csv("https://rudeboybert.github.io/STAT495/static/Titanic/test.csv")
+submission <- read_csv("https://rudeboybert.github.io/STAT495/static/Titanic/gender_submission.csv")
+```
+
+#Fitting a random forest to the training data
+```{r}
+#In building my model, I left out passenger identifying info like PassengerID and Name, along with #Ticket. I figure any information the ticket gives will be encompassed by Fare. Ommited Cabin bc randomForest cannot handle a factor with 133 levels. Ommited Age, Fare, and Embarked due to NA's.
+train$SurvivedFactor <- as.factor(train$Survived)
+train$SexFactor <- as.factor(train$Sex)
+
+mod1 <- randomForest(SurvivedFactor ~ Pclass + SexFactor + SibSp + Parch,data = train, ntree = 1000)
+
+
+#Making survival predictions
+test$SexFactor <- as.factor(test$Sex)
+
+predictedSurvivalForest <- predict(mod1, test)
+
+#Removing NA's and changing data type of submission
+dataToSubmitForest <- as.integer(as.character(predictedSurvivalForest))
+
+final <- test %>% select(PassengerId)
+final$Prediction <- dataToSubmitForest
+
+write_csv(final,"submission.csv")
+```
 
